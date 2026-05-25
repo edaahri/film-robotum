@@ -87,6 +87,9 @@ st.subheader(f"Listelenen Film Sayısı: {len(filtrelenmis_df)}")
 
 # Şık bir tablo olarak göster (Yeni sütunlar IMDb ve Yıl tabloya eklendi)
 st.dataframe(
-    filtrelenmis_df[['Film Adı', 'Tür', 'Yıl', 'IMDb Puanı', 'FHD Puanı']], 
+    filtrelenmis_df[['Film Adı', 'Tür', 'Yıl', 'IMDb Puanı', 'FHD Puanı', 'Link']], 
+    column_config={
+        "Link": st.column_config.LinkColumn("İzleme Linki")
+    },
     use_container_width=True
 )
