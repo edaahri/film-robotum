@@ -1,28 +1,26 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon May 25 20:54:31 2026
-
-@author: ahri
-"""
 import streamlit as st
 import pandas as pd
+import os
+import google.generativeai as genai
+
+# --- GOOGLE GEMINI API KEY AYARI ---
+# YENİ ALDIĞIN API ANAHTARINI BURAYA YAPIŞTIR:
+os.environ["GOOGLE_API_KEY"] = "AIzaSyAO5cP6R0FgCqFnALtjL2dbs8ONjtqmfps"
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # 1. Sayfa Tasarımı
 st.set_page_config(page_title="Gelişmiş Film Robotum", layout="wide")
-st.title("🎬 Benim Film Robotum (Gelişmiş Versiyon)")
-st.markdown("FHD Puanı, IMDb Puanı ve Film Yılına göre filtreleme yapın.")
+st.title("🎬 Benim Film Robotum (Yapay Zeka Destekli)")
+st.markdown("Filtreleri kullanabilir veya **Yapay Zekaya nasıl bir film izlemek istediğini** söyleyebilirsin!")
 
-# 2. Veriyi Yükleme (Güncellenmiş CSV dosyasını okuyoruz)
+# 2. Veriyi Yükleme
 @st.cache_data
 def veriyi_getir():
     df = pd.read_csv("filmler.csv")
-    # Puanları ve yılı sayısal veriye çevir
     df['FHD Puanı'] = pd.to_numeric(df['FHD Puanı'], errors='coerce')
-    df['IMDb Puanı'] = pd.to_numeric(df['IMDb Puanı'], errors='coerce') # YENİ
-    df['Yıl'] = pd.to_numeric(df['Yıl'], errors='coerce')               # YENİ
+    df['IMDb Puanı'] = pd.to_numeric(df['IMDb Puanı'], errors='coerce') 
+    df['Yıl'] = pd.to_numeric(df['Yıl'], errors='coerce')               
     
-    # Yılı temiz göster (Örn: 2023.0 yerine 2023), NaN olanları es geç
     df = df.dropna(subset=['Yıl'])
     df['Yıl'] = df['Yıl'].astype(int)
     return df
@@ -32,33 +30,24 @@ df = veriyi_getir()
 # 3. Sol Menü (Filtreleme Seçenekleri)
 st.sidebar.header("🔍 Gelişmiş Filtrele")
 
-# Arama Kutusu
 arama = st.sidebar.text_input("Film Adı Ara:")
-
-# Tür Arama Kutusu
 tur_arama = st.sidebar.text_input("Tür Ara (Örn: Aksiyon):")
 
-# --- YENİ FİLTRE 1: IMDb Puan Slider'ı ---
 min_puan_imdb, max_puan_imdb = st.sidebar.slider(
     "IMDb Puan Aralığı", 
     min_value=0.0, max_value=10.0, value=(5.0, 10.0), step=0.1
 )
 
-# --- YENİ FİLTRE 2: Film Yılı Slider'ı ---
-# Veritabanımızdaki en eski ve en yeni yılı bulalım
-min_yil_db = df['Yıl'].min()
-max_yil_db = df['Yıl'].max()
-
-# Slider'ı veritabanındaki yıllara göre ayarla
+min_yil_db = int(df['Yıl'].min())
+max_yil_db = int(df['Yıl'].max())
 yil_araligi = st.sidebar.slider(
     "Film Yılı Aralığı", 
-    min_value=int(min_yil_db), 
-    max_value=int(max_yil_db), 
-    value=(int(min_yil_db), int(max_yil_db)), 
+    min_value=min_yil_db, 
+    max_value=max_yil_db, 
+    value=(min_yil_db, max_yil_db), 
     step=1
 )
 
-# FHD Puan Kaydırma Çubuğu (Varsayılan olarak kalsın)
 min_puan_fhd, max_puan_fhd = st.sidebar.slider(
     "FHD Puan Aralığı", 
     min_value=0.0, max_value=10.0, value=(5.0, 10.0), step=0.1
@@ -69,23 +58,62 @@ filtrelenmis_df = df.copy()
 
 if arama:
     filtrelenmis_df = filtrelenmis_df[filtrelenmis_df['Film Adı'].str.contains(arama, case=False, na=False)]
-
 if tur_arama:
     filtrelenmis_df = filtrelenmis_df[filtrelenmis_df['Tür'].str.contains(tur_arama, case=False, na=False)]
 
-# Sayısal filtreleri uygula
-# 1. IMDb Puanı
 filtrelenmis_df = filtrelenmis_df[(filtrelenmis_df['IMDb Puanı'] >= min_puan_imdb) & (filtrelenmis_df['IMDb Puanı'] <= max_puan_imdb)]
-# 2. Yıl
 filtrelenmis_df = filtrelenmis_df[(filtrelenmis_df['Yıl'] >= yil_araligi[0]) & (filtrelenmis_df['Yıl'] <= yil_araligi[1])]
-# 3. FHD Puanı
 filtrelenmis_df = filtrelenmis_df[(filtrelenmis_df['FHD Puanı'] >= min_puan_fhd) & (filtrelenmis_df['FHD Puanı'] <= max_puan_fhd)]
 
+# --- YENİ: GEMINI İLE DOĞAL DİL ARAMA ---
+st.divider()
+st.subheader("🤖 Gemini Film Asistanına Sor")
+
+kullanici_girdisi = st.text_area(
+    "Nasıl bir film izlemek istiyorsun?", 
+    placeholder="Bana uzayda geçen ama çok karanlık olmayan, sonu mutlu biten bir macera filmi öner...",
+    key="film_arama_kutusu"
+)
+
+if st.button("Yapay Zekaya Sor"):
+    if not kullanici_girdisi:
+        st.warning("Lütfen önce nasıl bir film aradığınızı yazın.")
+    else:
+        with st.spinner('Gemini film veritabanını inceliyor...'):
+            top_10_film = filtrelenmis_df.sort_values(by='IMDb Puanı', ascending=False).head(2000)
+            
+            film_listesi_metni = ""
+            for index, row in top_10_film.iterrows():
+                film_listesi_metni += f"- Film Adı: {row['Film Adı']}, Tür: {row['Tür']}, Yıl: {row['Yıl']}, IMDb: {row['IMDb Puanı']}, Link: {row['Link']}\n"
+            
+            try:
+                hazir_mesaj = f"""
+
+Sen profesyonel bir film eleştirmeni ve öneri robotusun.
+Kullanıcı şu tarz bir film arıyor: "{kullanici_girdisi}"
+
+Aşağıda benim veritabanımda bulunan popüler filmler yer alıyor:
+{film_listesi_metni}
+
+Bu listedeki filmler arasından kullanıcının isteğine EN UYGUN olanları seç (Kullanıcı kaç film istediyse o kadar, belirtmediyse en fazla 3 tane öner). 
+Önerdiğin her film için, neden bu filmi izlemesi gerektiğini kullanıcının isteğine atıfta bulunarak 1-2 cümleyle açıkla ve sonuna filmin izleme linkini ekle. 
+Eğer listede isteğe uygun HİÇBİR film yoksa, listeye en yakın olanları seçip nedenini belirt.
+
+"""
+                # İŞTE BURAYI SENİN YENİ MODELİNE GÖRE GÜNCELLEDİK!
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                cevap = model.generate_content(hazir_mesaj)
+                
+                st.success("İşte Gemini'nin Senin İçin Seçtiği Film:")
+                st.info(cevap.text)
+            
+            except Exception as e:
+                st.error(f"Hata detayı: {e}")
+
+st.divider()
 
 # 5. Sonuçları Ekranda Gösterme
-st.subheader(f"Listelenen Film Sayısı: {len(filtrelenmis_df)}")
-
-# Şık bir tablo olarak göster (Yeni sütunlar IMDb ve Yıl tabloya eklendi)
+st.subheader(f"Listelenen Toplam Film Sayısı: {len(filtrelenmis_df)}")
 st.dataframe(
     filtrelenmis_df[['Film Adı', 'Tür', 'Yıl', 'IMDb Puanı', 'FHD Puanı', 'Link']], 
     column_config={
