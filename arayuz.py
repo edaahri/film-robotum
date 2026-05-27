@@ -1,12 +1,9 @@
 import streamlit as st
-import pandas as pd
-import os
 import google.generativeai as genai
 
-# --- GOOGLE GEMINI API KEY AYARI ---
-# YENİ ALDIĞIN API ANAHTARINI BURAYA YAPIŞTIR:
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"]
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# Artık os.environ ile uğraşmana gerek yok, Streamlit bunu otomatik görüyor:
+api_key = st.secrets["GOOGLE_API_KEY"]
+genai.configure(api_key=api_key)
 
 # 1. Sayfa Tasarımı
 st.set_page_config(page_title="Gelişmiş Film Robotum", layout="wide")
