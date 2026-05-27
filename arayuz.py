@@ -107,7 +107,11 @@ Eğer listede isteğe uygun HİÇBİR film yoksa, listeye en yakın olanları se
                 st.info(cevap.text)
             
             except Exception as e:
-                st.error(f"Hata detayı: {e}")
+                # Hata kodunu kontrol et
+                if "429" in str(e):
+                    st.error("Günlük ücretsiz limitimizi doldurduk. Lütfen yarın tekrar deneyin!")
+                else:
+                    st.error(f"Bir hata oluştu: {e}")
 
 st.divider()
 
@@ -120,15 +124,3 @@ st.dataframe(
     },
     use_container_width=True
 )
-
-try:
-                # ... model çağrısı ...
-                cevap = model.generate_content(hazir_mesaj)
-                st.success("İşte Gemini'nin Senin İçin Seçtiği Film:")
-                st.info(cevap.text)
-            
-            except Exception as e:
-                if "429" in str(e):
-                    st.error("Günlük ücretsiz limitimizi doldurduk. Lütfen yarın tekrar deneyin!")
-                else:
-                    st.error(f"Bir hata oluştu: {e}")
