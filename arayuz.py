@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 # --- GOOGLE GEMINI API KEY AYARI ---
 # YENİ ALDIĞIN API ANAHTARINI BURAYA YAPIŞTIR:
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAO5cP6R0FgCqFnALtjL2dbs8ONjtqmfps"
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"]
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # 1. Sayfa Tasarımı
