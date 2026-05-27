@@ -120,3 +120,15 @@ st.dataframe(
     },
     use_container_width=True
 )
+
+try:
+                # ... model çağrısı ...
+                cevap = model.generate_content(hazir_mesaj)
+                st.success("İşte Gemini'nin Senin İçin Seçtiği Film:")
+                st.info(cevap.text)
+            
+            except Exception as e:
+                if "429" in str(e):
+                    st.error("Günlük ücretsiz limitimizi doldurduk. Lütfen yarın tekrar deneyin!")
+                else:
+                    st.error(f"Bir hata oluştu: {e}")
